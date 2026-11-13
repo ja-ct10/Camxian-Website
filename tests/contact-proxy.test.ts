@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { forwardContactRequest } from "../src/lib/leadcrm.server";
+import { forwardContactEmailAvailabilityRequest, forwardContactRequest } from "../src/lib/leadcrm.server";
 import { definition, formId } from "./fixtures";
 
 const base = "http://localhost:3000/api/contact-form/";
@@ -23,6 +23,24 @@ describe("same-origin proxy", () => {
     expect(result.status).toBe(200);
     expect(upstream).toHaveBeenCalledWith(`https://crm.example.com/api/v1/public/forms/${formId}`, expect.objectContaining({ method: "GET", cache: "no-store", redirect: "error" }));
     expect(result.headers.get("cache-control")).toBe("no-store");
+  });
+  it("forwards only the normalized availability query and returns the public result without caching", async () => {
+    upstream.mockResolvedValueOnce(Response.json({ success: true, data: { available: false, reason: "STAFF_EMAIL_NOT_ALLOWED", private: "omitted" } }));
+    const result = await forwardContactEmailAvailabilityRequest(new Request(base + "email-availability/?email=ANA%2BTEST%40example.com&publicId=ignored", { headers: { Cookie: "private=never-forward", Authorization: "never-forward" } }));
+    expect(upstream).toHaveBeenCalledWith(`https://crm.example.com/api/v1/public/forms/${formId}/email-availability?email=ana%2Btest%40example.com`, expect.objectContaining({ method: "GET", headers: { Accept: "application/json" }, cache: "no-store", redirect: "error" }));
+    expect(result.headers.get("cache-control")).toBe("no-store");
+    expect(await result.json()).toEqual({ success: true, data: { available: false, reason: "STAFF_EMAIL_NOT_ALLOWED" } });
+  });
+  it("rejects malformed checks and results and preserves availability rate limits", async () => {
+    const check = (query: string) => forwardContactEmailAvailabilityRequest(new Request(base + "email-availability/" + query));
+    expect((await check("?email=a%40example.com&email=b%40example.com")).status).toBe(400);
+    expect(upstream).not.toHaveBeenCalled();
+    upstream.mockResolvedValueOnce(Response.json({ success: true, data: { available: false, reason: "unknown" } }));
+    expect((await check("?email=a%40example.com")).status).toBe(502);
+    upstream.mockResolvedValueOnce(new Response("Slow down", { status: 429, headers: { "Retry-After": "120" } }));
+    const limited = await check("?email=a%40example.com");
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("120");
   });
   it("forwards submissions without cookies, authorization or spoofed identity", async () => {
     upstream.mockResolvedValueOnce(Response.json({ success: true, data: { accepted: true, leadId: "private" } }, { status: 201 }));

@@ -3,7 +3,7 @@
 export const contactKeys = ["firstName", "lastName", "companyName", "phone", "email", "productInterest", "address"] as const;
 export type ContactKey = typeof contactKeys[number];
 export type ContactValues = Record<Exclude<ContactKey, "productInterest">, string> & { productInterest: string[] };
-export type FormField = { id: string; type: string; label: string; required?: boolean; mapToField?: string; options?: string[]; optionLabels?: Record<string, string> };
+export type FormField = { id: string; type: string; label: string; required?: boolean; mapToField?: string; customFieldId?: string; options?: string[]; optionLabels?: Record<string, string> };
 export type Product = { id: string; name: string; category: string };
 export type PublicForm = { name: string; version: number; fields: FormField[]; trackUrlParams: boolean; productCatalog?: { categories: string[]; products: Product[] } };
 export type BoundForm = PublicForm & { mapping: Record<ContactKey, FormField>; products: Product[] };
@@ -12,6 +12,13 @@ export type Receipt = { identity: string; payload: Submission };
 export const trackingKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const;
 export const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const controls = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
+export const emailAvailabilityMessages = {
+  STAFF_EMAIL_NOT_ALLOWED: "This email belongs to a staff account and cannot be used.",
+  EMAIL_IN_USE: "A user with this email already exists in this tenant",
+  EXTERNAL_STAFF_EMAIL_NOT_ALLOWED: "Only Client Admin users can approve an external staff email.",
+} as const;
+export type EmailAvailabilityReason = keyof typeof emailAvailabilityMessages;
+export type EmailAvailability = { available: true } | { available: false; reason: EmailAvailabilityReason };
 const layoutTypes = new Set(["header", "heading", "paragraph", "divider"]);
 const compatibleTypes: Record<ContactKey, string[]> = {
   firstName: ["single-line"], lastName: ["single-line"], companyName: ["single-line", "company-name"],
@@ -36,6 +43,7 @@ export function parsePublicForm(envelope: unknown): BoundForm {
     if (!isRecord(field) || typeof field.id !== "string" || !/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/.test(field.id) || ["constructor", "prototype", "toString", "hasOwnProperty"].includes(field.id) || ids.has(field.id) || typeof field.type !== "string" || typeof field.label !== "string") throw unavailable();
     if (field.required !== undefined && typeof field.required !== "boolean") throw unavailable();
     if (field.mapToField !== undefined && typeof field.mapToField !== "string") throw unavailable();
+    if (field.customFieldId !== undefined && typeof field.customFieldId !== "string") throw unavailable();
     if (field.options !== undefined && (!Array.isArray(field.options) || !field.options.every(v => typeof v === "string"))) throw unavailable();
     if (field.optionLabels !== undefined && (!isRecord(field.optionLabels) || !Object.values(field.optionLabels).every(v => typeof v === "string"))) throw unavailable();
     ids.add(field.id);
@@ -57,7 +65,7 @@ export function parsePublicForm(envelope: unknown): BoundForm {
   const products = (mapping.productInterest.options ?? []).map(id => {
     if (!uuidPattern.test(id)) throw unavailable();
     const product = catalog?.products.find(product => product.id === id);
-    const name = product?.name || mapping.productInterest.optionLabels?.[id];
+    const name = mapping.productInterest.optionLabels?.[id] || product?.name;
     if (!name) throw unavailable();
     return { id, name, category: product?.category ?? "" };
   });
@@ -72,27 +80,53 @@ export function validateContactValues(form: BoundForm, input: ContactValues) {
     const field = form.mapping[key];
     if (key === "productInterest") {
       const selected = [...new Set(input.productInterest)].sort();
-      if ((field.required && !selected.length) || selected.some(id => !form.products.some(p => p.id === id))) errors[field.id] = "Select approved product interests.";
+      if (field.required && !selected.length) errors[field.id] = `${field.label} is required.`;
+      else if (selected.some(id => !form.products.some(p => p.id === id))) errors[field.id] = "Select approved product interests.";
       values[field.id] = selected;
       continue;
     }
     const raw = input[key];
     let value = raw.trim();
-    const max = key === "firstName" || key === "lastName" ? 100 : field.type === "multi-line" ? 4000 : 254;
-    if (raw.length > max) errors[field.id] = `Use ${max} characters or fewer.`;
+    const max = key === "firstName" || key === "lastName" ? 100 : contactInputMaxLength(field);
+    const nameLabel = key === "firstName" ? "First name" : key === "lastName" ? "Last name" : undefined;
+    if (nameLabel && /[0-9]/.test(raw)) errors[field.id] = `${nameLabel} must not contain numbers.`;
+    else if (nameLabel && /[^\p{L}\p{M} '\u2018\u2019\u2010\u2011-]/u.test(raw)) errors[field.id] = `${nameLabel} must not contain special characters.`;
+    else if (raw.length > max) errors[field.id] = `String must contain at most ${max} character(s)`;
     else if (controls.test(raw)) errors[field.id] = "Control characters are not allowed.";
     else if (!value && field.required) errors[field.id] = `${field.label} is required.`;
-    else if (value && (key === "firstName" || key === "lastName") && /[0-9]/.test(value)) errors[field.id] = "Names cannot contain numbers.";
     else if (value && key === "email") {
       value = value.toLowerCase();
       if (!/^(?!\.)(?!.*\.\.)([a-z0-9_'+\-.]*)[a-z0-9_+-]@([a-z0-9][a-z0-9-]*\.)+[a-z]{2,}$/i.test(value)) errors[field.id] = "Enter a valid email address.";
     } else if (value && key === "phone") {
-      if (raw.length > 32 || /[\u0000-\u001f\u007f-\u009f]/.test(raw) || !/^(?:\+63)?9\d{9}$/.test(value)) errors[field.id] = "Enter 10 digits starting with 9.";
+      if (value.length > 32 || /[\u0000-\u001f\u007f-\u009f]/.test(value) || !/^(?:\+63)?9\d{9}$/.test(value)) errors[field.id] = "Enter 10 digits starting with 9.";
       else if (!value.startsWith("+63")) value = `+63${value}`;
     }
     values[field.id] = value;
   }
   return { values, errors };
+}
+
+/** The public UI allows overlong names to be entered and reports the 100-character validation limit. */
+export function contactInputMaxLength(field?: FormField) {
+  return field?.type === "multi-line" ? field.customFieldId ? 10000 : 4000 : field?.customFieldId ? 1000 : 254;
+}
+
+export function phoneInput(value: string) { return value.replace(/\D/g, "").slice(0, 10); }
+
+export function matchesProductSearch(query: string, label: string) {
+  const terms = query.trim().toLowerCase().slice(0, 150).split(/\s+/).filter(Boolean).slice(0, 12);
+  return terms.every(term => label.toLowerCase().includes(term));
+}
+
+export function parseEmailAvailability(envelope: unknown): EmailAvailability {
+  if (isRecord(envelope) && envelope.success === true && isRecord(envelope.data)) {
+    if (envelope.data.available === true) return { available: true };
+    const reason = envelope.data.reason;
+    if (envelope.data.available === false && typeof reason === "string" && Object.hasOwn(emailAvailabilityMessages, reason)) {
+      return { available: false, reason: reason as EmailAvailabilityReason };
+    }
+  }
+  throw new Error("Unable to verify this email. Please try again.");
 }
 
 export function captureTracking(search: string): Record<string, string> {

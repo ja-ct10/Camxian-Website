@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowIcon, Button } from "./button";
 import { SocialIcon } from "./social-icon";
 
 export function SiteFooter() {
@@ -14,38 +13,6 @@ export function SiteFooter() {
                 <Link href="/">
                   <img width="1005" height="171" src="/images/logo@3x.png" alt="Camxian Technologies" srcSet="/images/logo@3x.png 1005w, /images/logo@3x-300x51.png 300w, /images/logo@3x-768x131.png 768w" sizes="(max-width: 1005px) 100vw, 1005px" />
                 </Link>
-              </div>
-            </div>
-            <div className="elementor-element elementor-element-ff140f8 e-con-full e-flex e-con e-child">
-              <div className="elementor-element elementor-element-390a0ca elementor-widget elementor-widget-heading">
-                <div className="elementor-widget-container">
-                  <h5 className="elementor-heading-title elementor-size-default">
-                    {"PLDT Home Tracker"}
-                  </h5>
-                </div>
-              </div>
-              <div className="elementor-element elementor-element-396839e elementor-widget elementor-widget-text-editor">
-                <div className="elementor-widget-container">
-                  <p>
-                    {"Check the status of your application or request."}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="elementor-element elementor-element-5b5f4d0 elementor-mobile-align-center elementor-widget elementor-widget-button">
-              <div className="elementor-widget-container">
-                <div className="elementor-button-wrapper">
-                  <Button href="https://camxian.com/pldt-home-tracker/">
-                    <span className="elementor-button-content-wrapper">
-                      <span className="elementor-button-icon">
-                        <ArrowIcon />
-                      </span>
-                      <span className="elementor-button-text">
-                        {"Check Status"}
-                      </span>
-                    </span>
-                  </Button>
-                </div>
               </div>
             </div>
           </div>

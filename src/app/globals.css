@@ -95,9 +95,11 @@ svg { display: inline-block; vertical-align: middle; }
 .contact-form [aria-invalid="true"] { border-color: #c22 !important; }
 .contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus { outline: 2px solid #4293e5; outline-offset: 1px; }
 .contact-form .phone-input { display: flex; border: 1px solid #f0eff4; border-radius: 5px; align-items: center; }
+.contact-form .phone-input[data-invalid="true"] { border-color: #c22; }
 .phone-prefix { flex-shrink: 0; padding: 0 7px; font-size: 12px; color: #051257; }
 .contact-form .phone-input input { border: 0 !important; border-left: 1px solid #f0eff4 !important; border-radius: 0 5px 5px 0; }
 .contact-form .field-error { color: #ad1b1b; font-size: 13px; margin: 6px 0 0; line-height: 1.4; }
+.contact-form .field-status { color: #637896; font-size: 13px; margin: 6px 0 0; line-height: 1.4; }
 .contact-form .form-message { font-size: 14px; margin: 18px 0; line-height: 1.5; }
 .contact-form .form-error { color: #ad1b1b; }
 .contact-form .form-success { color: #155e37; }
@@ -112,6 +114,7 @@ svg { display: inline-block; vertical-align: middle; }
 .product-picker summary { list-style: none; position: relative; cursor: pointer; padding: 9px 28px 9px 10px; border: 1px solid #f0eff4; border-radius: 5px; font-size: 14px; background: #f6f5f8 url("/images/icon-select.svg") right 10px center / 11px no-repeat; }
 .product-picker summary::-webkit-details-marker { display: none; }
 .product-picker[open] summary { margin-bottom: 8px; }
+.contact-form .product-search { margin-bottom: 8px; }
 .product-options { max-height: 230px; overflow-y: auto; border: 1px solid #f0eff4; padding: 8px; }
 .contact-form .product-options label { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; margin: 0; font-weight: 400; }
 .contact-form .product-options input { appearance: auto; width: 15px; height: 15px; min-height: 0; margin-top: 3px; flex-shrink: 0; accent-color: #2d348d; }

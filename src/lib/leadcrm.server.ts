@@ -1,4 +1,4 @@
-import { isRecord, parsePublicForm, uuidPattern } from "./contact-contract";
+import { isRecord, parseEmailAvailability, parsePublicForm, uuidPattern } from "./contact-contract";
 
 const maxBodyBytes = 64 * 1024;
 const timeoutMs = 15_000;
@@ -41,8 +41,27 @@ async function boundedBody(request: Request): Promise<string | Response> {
 }
 
 export async function forwardContactRequest(request: Request, submission = false): Promise<Response> {
+  return forwardPublicFormRequest(request, submission ? "submission" : "definition");
+}
+
+export async function forwardContactEmailAvailabilityRequest(request: Request): Promise<Response> {
+  return forwardPublicFormRequest(request, "email-availability");
+}
+
+async function forwardPublicFormRequest(request: Request, operation: "definition" | "submission" | "email-availability"): Promise<Response> {
   const config = configuration();
   if (!config) return reply({ success: false, error: unavailable }, 503);
+  const submission = operation === "submission";
+  let suffix = submission ? "/submissions" : "";
+  if (operation === "email-availability") {
+    const params = new URL(request.url).searchParams;
+    const rawEmail = params.get("email") ?? "";
+    const email = rawEmail.trim().toLowerCase();
+    if (!email || email.length > 254 || params.getAll("email").length !== 1 || /[\u0000-\u001f\u007f-\u009f]/.test(rawEmail)) {
+      return reply({ success: false, error: "Enter a valid email address." }, 400);
+    }
+    suffix = `/email-availability?${new URLSearchParams({ email })}`;
+  }
   let body: string | undefined;
   if (submission) {
     const origin = request.headers.get("origin");
@@ -63,18 +82,24 @@ export async function forwardContactRequest(request: Request, submission = false
     } catch { return reply({ success: false, error: "The submission could not be read." }, 400); }
   }
   try {
-    const upstream = await fetch(`${config.origin}/api/v1/public/forms/${encodeURIComponent(config.publicId)}${submission ? "/submissions" : ""}`, {
+    const upstream = await fetch(`${config.origin}/api/v1/public/forms/${encodeURIComponent(config.publicId)}${suffix}`, {
       method: submission ? "POST" : "GET", headers: { Accept: "application/json", ...(submission ? { "Content-Type": "application/json" } : {}) },
       body, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(timeoutMs),
     });
-    let data: unknown;
-    try { data = await upstream.json(); } catch { return reply({ success: false, error: "The contact service returned an invalid response. Please retry." }, 502); }
+    const data: unknown = await upstream.json().catch(() => undefined);
     if (!upstream.ok) {
-      const error = isRecord(data) && typeof data.error === "string" ? data.error : upstream.status === 429 ? "Too many submissions. Please try again later." : "Unable to submit your inquiry. Please retry.";
-      const fieldErrors = isRecord(data) && isRecord(data.fieldErrors) ? Object.fromEntries(Object.entries(data.fieldErrors).filter(([, value]) => typeof value === "string")) : undefined;
+      const error = operation === "email-availability" ? "Unable to verify this email. Please try again."
+        : isRecord(data) && typeof data.error === "string" ? data.error
+        : upstream.status === 429 ? "Too many submissions. Please try again later."
+        : submission ? "Unable to submit your inquiry. Please retry." : unavailable;
+      const fieldErrors = submission && isRecord(data) && isRecord(data.fieldErrors) ? Object.fromEntries(Object.entries(data.fieldErrors).filter(([, value]) => typeof value === "string")) : undefined;
       return reply({ success: false, error, ...(fieldErrors ? { fieldErrors } : {}) }, upstream.status, upstream);
     }
     if (!isRecord(data) || data.success !== true || !isRecord(data.data)) return reply({ success: false, error: "The contact service returned an invalid response. Please retry." }, 502);
+    if (operation === "email-availability") {
+      try { return reply({ success: true, data: parseEmailAvailability(data) }, upstream.status, upstream); }
+      catch { return reply({ success: false, error: "Unable to verify this email. Please try again." }, 502); }
+    }
     if (submission) {
       if (data.data.accepted !== true) return reply({ success: false, error: "Your inquiry has not been confirmed. Please retry." }, 502);
       return reply({ success: true, data: { accepted: true } }, upstream.status, upstream);

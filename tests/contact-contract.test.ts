@@ -34,6 +34,25 @@ describe("published form contract", () => {
     expect(validateContactValues(form, { ...validValues(), phone: "" }).errors).toEqual({});
     expect(validateContactValues(form, { ...validValues(), lastName: "x".repeat(101), address: "\u0000" }).errors).toHaveProperty("family");
   });
+  it("matches public name character rules, message precedence and the pre-trim length limit", () => {
+    const form = parsePublicForm(definition());
+    const base = validValues();
+    const given = " Jo\u0301se O‘Neil‑Pérez ";
+    expect(validateContactValues(form, { ...base, firstName: given }).values.given).toBe(given.trim());
+    expect(validateContactValues(form, { ...base, firstName: "A!2" + "x".repeat(100), lastName: "Ana\u2014María" }).errors).toEqual({ given: "First name must not contain numbers.", family: "Last name must not contain special characters." });
+    expect(validateContactValues(form, { ...base, firstName: "A".repeat(100) }).errors).toEqual({});
+    expect(validateContactValues(form, { ...base, firstName: "A".repeat(100) + " " }).errors.given).toBe("String must contain at most 100 character(s)");
+  });
+  it("applies the configured text limits, required flags and control rules", () => {
+    const payload = definition(); payload.data.fields[2].required = true;
+    const form = parsePublicForm(payload);
+    const base = validValues();
+    expect(validateContactValues(form, { ...base, companyName: "  ", address: "" }).errors).toEqual({ organization: "Company is required." });
+    expect(validateContactValues(form, { ...base, companyName: "Acme\u0000", address: "x".repeat(4001) }).errors).toEqual({ organization: "Control characters are not allowed.", location: "String must contain at most 4000 character(s)" });
+    expect(validateContactValues(form, { ...base, companyName: "x".repeat(255), email: "one..two@example.com" }).errors).toEqual({ organization: "String must contain at most 254 character(s)", mail: "Enter a valid email address." });
+    expect(validateContactValues(form, { ...base, companyName: "x".repeat(254), address: "  Unit 4\nPasig  " }).values.location).toBe("Unit 4\nPasig");
+    expect(validateContactValues(form, { ...base, phone: "8123456789" }).errors.mobile).toBe("Enter 10 digits starting with 9.");
+  });
   it("keeps only bounded supported tracking parameters", () => {
     expect(captureTracking("?utm_source=company_website&utm_medium=website&secret=ignored&utm_campaign=" + "x".repeat(201))).toEqual({ utm_source: "company_website", utm_medium: "website" });
   });
