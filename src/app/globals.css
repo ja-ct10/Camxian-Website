@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "../styles/original/layout.css";
+@import "../styles/original/image.css";
+@import "../styles/original/heading.css";
+@import "../styles/original/icon-list.css";
+@import "../styles/original/social-icons.css";
+@import "../styles/original/swiper.css";
+@import "../styles/original/e-swiper.css";
+@import "../styles/original/carousel.css";
+@import "../styles/original/post-10.css";
+@import "../styles/original/post-46.css";
+@import "../styles/original/post-80.css";
+@import "../styles/original/post-81.css";
+@import "../styles/original/post-84.css";
+@import "../styles/original/post-92.css";
+@import "../styles/original/post-103.css";
+@import "../styles/original/post-255.css";
+@import "../styles/original/post-261.css";
+
+/* The published Camxian measurements live in styles/original. These rules
+   replace the CMS defaults and supply the React navigation and contact form. */
+html { scroll-behavior: smooth; }
+@font-face { font-family: Manrope; src: url("/fonts/manrope.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Font Awesome 5 Free"; src: url("/fonts/fa-solid-900.woff2") format("woff2"); font-weight: 900; font-display: block; }
+@font-face { font-family: "Font Awesome 5 Brands"; src: url("/fonts/fa-brands-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+body { margin: 0; background: white; color: #02132f; font-family: Manrope, sans-serif; font-size: 18px; font-weight: 300; line-height: 1.4; letter-spacing: -.1px; overflow-x: clip; }
+*, *::before, *::after { box-sizing: border-box; }
+h1, h2, h3, h4, h5, h6 { margin: 0 0 20px; line-height: 1.2; font-weight: 600; }
+p { margin: 1em 0; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+button, select { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+img { max-width: 100%; height: auto; }
+svg { display: inline-block; vertical-align: middle; }
+.e-con { min-width: 0; }
+.elementor-button { display: inline-block; padding: 12px 24px; color: white; font-family: "proxima-nova", sans-serif; font-weight: 400; line-height: 1; text-align: center; transition: background-color .3s ease; }
+.elementor-button-content-wrapper { display: flex; justify-content: center; gap: 10px; align-items: center; }
+.elementor-button-icon { display: inline-flex; }
+.elementor-button svg { width: 1em; height: 1em; }
+.elementor-spacer-inner { height: var(--spacer-size); }
+.skip-link { position: fixed; top: -100px; left: 12px; z-index: 1000; padding: 12px; color: white; background: #051257; }
+.skip-link:focus { top: 12px; }
+:focus-visible { outline: 2px solid #4293e5; outline-offset: 4px; }
+.site-header { position: sticky; top: 0; z-index: 50; background: white; }
+.site-header.is-scrolled { box-shadow: 0 3px 5px rgb(0 0 0 / 16%); }
+.site-header.is-scrolled .elementor-element-66d4cab { --padding-top: 30px; --padding-bottom: 30px; }
+.site-header.is-scrolled .elementor-element-d14d96b img { width: 280px; }
+.desktop-navigation { display: flex; gap: 71px; white-space: nowrap; font-family: "proxima-nova", sans-serif; font-weight: 400; }
+.desktop-navigation a:hover, .desktop-navigation a[aria-current] { color: #2d348d; }
+.desktop-contact { flex-shrink: 0; }
+.menu-toggle { display: none; padding: 0; border: 0; line-height: 1; color: #4968d0; background: transparent !important; }
+.mobile-navigation { position: fixed; inset: 0; max-width: none; max-height: none; width: 100%; height: 100dvh; margin: 0; padding: 120px 20px 20px; border: 0; color: white; font-family: "proxima-nova", sans-serif; font-weight: 400; background: #4968d0 url("/images/mobile-menu-bg@2x.jpg") center/cover; }
+.mobile-navigation[open] { display: flex; flex-direction: column; justify-content: space-between; }
+.mobile-navigation::backdrop { background: rgb(0 0 0 / 80%); }
+.mobile-navigation nav { display: flex; flex-direction: column; gap: 25px; align-items: flex-start; }
+.mobile-navigation nav a { font-size: 35px; font-weight: 600; line-height: 1; }
+.mobile-navigation nav a:hover, .mobile-navigation nav a[aria-current] { color: #051257; }
+.mobile-navigation .menu-close { position: absolute; top: 22px; right: 22px; font-size: 28px; line-height: 1; padding: 2px 8px; color: white; border: 0; background: transparent; }
+.mobile-menu-footer { text-align: center; padding-top: 25px; }
+.mobile-menu-footer p { margin: 20px 0 5px; }
+.mobile-socials { display: flex; justify-content: center; gap: 16px; }
+.mobile-socials a { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; color: #4968d0; background: white; }
+.mobile-socials i { font-size: 23px; }
+.elementor-social-icon svg { color: white; }
+.fas, .fab { display: inline-block; font-style: normal; font-variant: normal; line-height: 1; -webkit-font-smoothing: antialiased; }
+.fas { font-family: "Font Awesome 5 Free"; font-weight: 900; }
+.fab { font-family: "Font Awesome 5 Brands"; font-weight: 400; }
+.fa-circle::before { content: "\f111"; }
+.fa-address-book::before { content: "\f2b9"; }
+.fa-phone-alt::before { content: "\f879"; }
+.fa-envelope::before { content: "\f0e0"; }
+.fa-facebook-f::before { content: "\f39e"; }
+.fa-instagram::before { content: "\f16d"; }
+.fa-linkedin-in::before { content: "\f0e1"; }
+.fa-tiktok::before { content: "\e07b"; }
+.milestone-carousel { touch-action: pan-y; --milestone-visible: 5; }
+.milestone-carousel .swiper-wrapper { display: flex; }
+.milestone-carousel .swiper-slide { flex-shrink: 0; width: calc(100% / var(--milestone-visible)); }
+.swiper-pagination button { border: 0; padding: 0; }
+
+.contact-form { width: 100%; min-width: 0; font-family: "proxima-nova", sans-serif; font-weight: 400; }
+.contact-form h2 { font-size: 20px; font-weight: 600; margin: 0 0 30px; }
+.contact-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 10px; }
+.form-field { min-width: 0; }
+.form-field.full { grid-column: 1 / -1; }
+.contact-form label, .contact-form .field-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #051257; }
+.contact-form .required { color: #e00000; margin-left: 2px; }
+.contact-form input, .contact-form textarea, .contact-form select { display: block; width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #f0eff4 !important; border-radius: 5px; background: white; color: #02132f; font-size: 14px; line-height: 1.4; }
+.contact-form input { min-height: 37px; }
+.contact-form input[type="hidden"] { display: none !important; }
+.contact-form textarea { min-height: 135px; resize: vertical; }
+.contact-form input::placeholder, .contact-form textarea::placeholder { color: #7d91b0; }
+.contact-form select { appearance: none; background: white url("/images/icon-select.svg") right 10px center / 11px no-repeat; padding-right: 28px; min-height: 37px; }
+.contact-form [aria-invalid="true"] { border-color: #c22 !important; }
+.contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus { outline: 2px solid #4293e5; outline-offset: 1px; }
+.contact-form .phone-input { display: flex; border: 1px solid #f0eff4; border-radius: 5px; align-items: center; }
+.phone-prefix { flex-shrink: 0; padding: 0 7px; font-size: 12px; color: #051257; }
+.contact-form .phone-input input { border: 0 !important; border-left: 1px solid #f0eff4 !important; border-radius: 0 5px 5px 0; }
+.contact-form .field-error { color: #ad1b1b; font-size: 13px; margin: 6px 0 0; line-height: 1.4; }
+.contact-form .form-message { font-size: 14px; margin: 18px 0; line-height: 1.5; }
+.contact-form .form-error { color: #ad1b1b; }
+.contact-form .form-success { color: #155e37; }
+.contact-form .form-submit { display: inline-block; padding: 8px 18px; margin-top: 25px; border: 0; border-radius: 0; background: #2d348d; color: white; font-size: 16px; line-height: 1.3; }
+.contact-form .form-submit:hover { background: #051257; }
+.contact-form .form-submit:disabled { opacity: .55; }
+.contact-form .retry-definition { border: 0; color: #2d348d; font-size: 14px; background: transparent; padding: 0; text-decoration: underline; }
+.contact-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.contact-form fieldset:disabled { opacity: .6; }
+.contact-form .product-category-label { font-size: 12px; font-weight: 400; color: #637896; margin-bottom: 5px; }
+.product-picker { margin-top: 7px; }
+.product-picker summary { list-style: none; position: relative; cursor: pointer; padding: 9px 28px 9px 10px; border: 1px solid #f0eff4; border-radius: 5px; font-size: 14px; background: #f6f5f8 url("/images/icon-select.svg") right 10px center / 11px no-repeat; }
+.product-picker summary::-webkit-details-marker { display: none; }
+.product-picker[open] summary { margin-bottom: 8px; }
+.product-options { max-height: 230px; overflow-y: auto; border: 1px solid #f0eff4; padding: 8px; }
+.contact-form .product-options label { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; margin: 0; font-weight: 400; }
+.contact-form .product-options input { appearance: auto; width: 15px; height: 15px; min-height: 0; margin-top: 3px; flex-shrink: 0; accent-color: #2d348d; }
+.contact-form .selection-count { margin: 5px 0 0; font-size: 12px; color: #637896; }
+.honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.elementor-84 .elementor-element-f944b37 h1 { font-size: 32px; }
+
+@media (max-width: 1024px) {
+  body { font-size: 16px; }
+  .desktop-navigation, .desktop-contact { display: none; }
+  .menu-toggle { display: inline-flex; }
+  .elementor-84 .elementor-element-f944b37 h1 { font-size: 28px; }
+}
+@media (max-width: 1023px) { .milestone-carousel { --milestone-visible: 3; } }
+@media (max-width: 767px) {
+  .milestone-carousel { --milestone-visible: 1; }
+  .site-header .elementor-element-d14d96b img { width: min(335px, 100%); }
+  .site-header.is-scrolled .elementor-element-d14d96b img { width: min(280px, 100%); }
+  .menu-toggle svg { width: 25px; height: 25px; }
+  .elementor-84 .elementor-element-f944b37 h1 { font-size: 24px; }
+  .elementor-84 .elementor-element-3c40fa8 { width: 100%; }
+  .contact-form-grid { gap: 20px 12px; }
+}
+@media (max-width: 390px) {
+  .contact-form-grid { grid-template-columns: 1fr; }
+  .form-field.full { grid-column: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

@@ -1,0 +1,35 @@
+/* Original Camxian published design values. */
+.elementor-kit-10{--e-global-color-primary:#02132F;--e-global-color-secondary:#4293E5;--e-global-color-text:#02132F;--e-global-color-accent:#2D348D;--e-global-color-462656b:#FFFFFF;--e-global-color-ad79974:#051257;--e-global-color-a5012c9:#4968D0;--e-global-color-8cb7137:#F6F5F8;--e-global-typography-primary-font-family:"proxima-nova";--e-global-typography-primary-font-weight:600;--e-global-typography-secondary-font-family:"proxima-nova";--e-global-typography-secondary-font-weight:700;--e-global-typography-text-font-family:"proxima-nova";--e-global-typography-text-font-weight:400;--e-global-typography-accent-font-family:"proxima-nova";--e-global-typography-accent-font-weight:400;font-size:18px;}
+.elementor-kit-10 button,.elementor-kit-10 input[type="button"],.elementor-kit-10 input[type="submit"],.elementor-kit-10 .elementor-button{background-color:var( --e-global-color-accent );font-size:18px;border-radius:0px 0px 0px 0px;}
+.elementor-kit-10 button:hover,.elementor-kit-10 button:focus,.elementor-kit-10 input[type="button"]:hover,.elementor-kit-10 input[type="button"]:focus,.elementor-kit-10 input[type="submit"]:hover,.elementor-kit-10 input[type="submit"]:focus,.elementor-kit-10 .elementor-button:hover,.elementor-kit-10 .elementor-button:focus{background-color:var( --e-global-color-ad79974 );}
+.elementor-kit-10 e-page-transition{background-color:#FFBC7D;}
+.elementor-kit-10 h1{font-size:64px;}
+.elementor-kit-10 h2{font-size:54px;}
+.elementor-kit-10 h3{font-size:48px;}
+.elementor-kit-10 h4{font-size:32px;}
+.elementor-kit-10 h5{font-size:20px;font-weight:700;}
+.elementor-kit-10 h6{font-size:18px;}
+.elementor-kit-10 label{color:var( --e-global-color-ad79974 );font-family:"proxima-nova", Sans-serif;font-weight:600;}
+.elementor-kit-10 input:not([type="button"]):not([type="submit"]),.elementor-kit-10 textarea,.elementor-kit-10 .elementor-field-textual{border-style:solid;border-width:1px 1px 1px 1px;border-color:#F6F5F8;border-radius:5px 5px 5px 5px;}
+.elementor-section.elementor-section-boxed > .elementor-container{max-width:1440px;}
+.e-con{--container-max-width:1440px;}
+.elementor-widget:not(:last-child){margin-block-end:20px;}
+.elementor-element{--widgets-spacing:20px 20px;--widgets-spacing-row:20px;--widgets-spacing-column:20px;}
+{}
+h1.entry-title{display:var(--page-title-display);}
+@media(max-width:1024px){.elementor-kit-10{font-size:16px;}
+.elementor-kit-10 h1{font-size:38px;}
+.elementor-kit-10 h2{font-size:32px;}
+.elementor-kit-10 h3{font-size:30px;}
+.elementor-kit-10 h4{font-size:28px;}
+.elementor-kit-10 button,.elementor-kit-10 input[type="button"],.elementor-kit-10 input[type="submit"],.elementor-kit-10 .elementor-button{font-size:16px;}
+.elementor-section.elementor-section-boxed > .elementor-container{max-width:1024px;}
+.e-con{--container-max-width:1024px;}
+}
+@media(max-width:767px){.elementor-kit-10 h3{font-size:28px;}
+.elementor-kit-10 h4{font-size:24px;}
+.elementor-kit-10 h5{font-size:18px;}
+.elementor-kit-10 h6{font-size:16px;}
+.elementor-section.elementor-section-boxed > .elementor-container{max-width:767px;}
+.e-con{--container-max-width:767px;}
+}
