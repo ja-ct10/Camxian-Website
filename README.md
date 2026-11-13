@@ -2,6 +2,8 @@
 
 Independent recreation of [camxian.com](https://camxian.com/) using Next.js App Router, TypeScript, and Tailwind CSS. Repository: [ja-ct10/Camxian-Website](https://github.com/ja-ct10/Camxian-Website).
 
+**Live website:** [camxian-recreate.vercel.app](https://camxian-recreate.vercel.app/)
+
 ## Run locally
 
 Tested with Node.js 22.19.0 and npm 10.9.3.
@@ -95,7 +97,9 @@ These are setup instructions only. This project does not modify or publish LeadC
 
 ## Deployment
 
-Deploy this repository independently to a host supporting Next.js Node.js route handlers.
+Production is deployed on Vercel as [`ja-ct10s-projects/camxian-recreate`](https://vercel.com/ja-ct10s-projects/camxian-recreate), connected to this repository's `main` branch. Its production domain is **https://camxian-recreate.vercel.app/**. Both LeadCRM variables are configured in Vercel for Production and Preview; local environment files are not uploaded to Git.
+
+See [Vercel deployment verification](docs/VERCEL.md). For another Node.js host:
 
 - Install: `npm ci --include=dev`
 - Build: `npm run build`
@@ -104,7 +108,7 @@ Deploy this repository independently to a host supporting Next.js Node.js route 
 - Keep the original Adobe font stylesheet reachable. Images, masks, and icon assets are served from this project.
 - After deployment, verify the four pages, mobile menu, published definition, an accepted inquiry, and CRM history again from the deployed origin.
 
-A static HTML-only export cannot serve the proxy routes. No production hosting, domain, or LeadCRM configuration was changed during implementation.
+A static HTML-only export cannot serve the proxy routes. Vercel serves the Next.js pages and proxy handlers together. LeadCRM's hosting, source, and form configuration remain unchanged.
 
 ## Verification and project independence
 
