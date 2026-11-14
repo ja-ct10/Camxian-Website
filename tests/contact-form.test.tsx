@@ -22,6 +22,7 @@ const requests = () => submissions().map(([, options]) => JSON.parse(options?.bo
 const submitButton = () => screen.getByRole("button", { name: "Submit" });
 const email = () => screen.getByLabelText(/Email Address/);
 const verified = () => waitFor(() => expect(submitButton()).toBeEnabled());
+const invalidName = "must not contain numbers or special characters such as @, #, $, %, &, *, !, _, +, =, /, ?, ., or ().";
 
 async function ready() {
   render(<ContactForm />);
@@ -59,14 +60,98 @@ describe("Contact form", () => {
     expect(first).toHaveAccessibleDescription("First Name is required.");
     fireEvent.change(first, { target: { value: "Ana2!" } });
     fireEvent.change(last, { target: { value: "O/Brien" } });
-    expect(first).toHaveAccessibleDescription("First name must not contain numbers.");
-    expect(last).toHaveAccessibleDescription("Last name must not contain special characters.");
+    expect(first).toHaveAccessibleDescription(`First name ${invalidName}`);
+    expect(last).toHaveAccessibleDescription(`Last name ${invalidName}`);
     fireEvent.change(first, { target: { value: "Ana-María" } });
     expect(first).toHaveAttribute("aria-invalid", "false");
     expect(last).toHaveAttribute("aria-invalid", "true");
     fireEvent.change(email(), { target: { value: "alice@@example.com" } });
     expect(email()).toHaveAccessibleDescription("Enter a valid email address.");
     expect(network).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ["First Name", "First name", "given", "A".repeat(100)],
+    ["Last Name", "Last name", "family", "A".repeat(100)],
+    ["Company", "Company name", "organization", "A".repeat(255)],
+    ["Full Address", "Full address", "location", "A".repeat(500)],
+    ["Email Address", "Email address", "mail", `${"a".repeat(64)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(61)}`],
+  ])("keeps overlong %s text, shows its inline error immediately, and submits only after correction", async (label, errorLabel, id, valid) => {
+    routes(() => Response.json({ success: true, data: { accepted: true } }, { status: 201 }));
+    await ready(); fillValid(); await verified();
+    const input = screen.getByLabelText(new RegExp(label));
+    expect(input).not.toHaveAttribute("maxlength");
+    fireEvent.change(input, { target: { value: valid } });
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    fireEvent.change(input, { target: { value: valid + "A" } });
+    expect(input).toHaveValue(valid + "A");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(`${errorLabel} must not exceed ${valid.length} characters.`);
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)).toHaveClass("field-error");
+    fireEvent.submit(submitButton().closest("form")!);
+    expect(submissions()).toHaveLength(0);
+    fireEvent.change(input, { target: { value: valid } });
+    expect(input).toHaveValue(valid);
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByText(`${errorLabel} must not exceed ${valid.length} characters.`)).not.toBeInTheDocument();
+    await verified(); fireEvent.click(submitButton());
+    await screen.findByText("Thank you! Your inquiry has been received. We will get back to you shortly.");
+    expect(requests()).toHaveLength(1);
+    expect(requests()[0].values[id]).toBe(valid);
+  });
+  it("preserves outer spaces in drafts while validating trimmed mapped text", async () => {
+    network.mockResolvedValueOnce(Response.json(definition()));
+    await ready();
+    for (const [label, max] of [["First Name", 100], ["Last Name", 100], ["Company", 255], ["Full Address", 500]] as const) {
+      const input = screen.getByLabelText(new RegExp(label));
+      const value = `  ${"A".repeat(max)}  `;
+      fireEvent.change(input, { target: { value } });
+      expect(input).toHaveValue(value);
+      expect(input).toHaveAttribute("aria-invalid", "false");
+    }
+    expect(network).toHaveBeenCalledTimes(1);
+  });
+  it.each(["gmail.com", "yahoo.com", "outlook.com", "company.com"])("verifies and submits a public %s email with tracking and published field IDs", async domain => {
+    window.history.replaceState({}, "", "/?utm_source=company_website&utm_medium=website&secret=ignored");
+    try {
+      const published = definition();
+      published.data.fields.forEach((field, i) => { field.id = `published_${i}`; });
+      routes(() => Response.json({ success: true, data: { accepted: true } }), () => Response.json(published));
+      await ready(); fillValid();
+      fireEvent.change(email(), { target: { value: ` CUSTOMER@${domain.toUpperCase()} ` } });
+      await verified();
+      expect(network.mock.calls.some(([url]) => String(url).includes(`?email=customer%40${domain}`))).toBe(true);
+      fireEvent.click(submitButton());
+      await screen.findByText(/Thank you!/);
+      expect(requests()[0]).toMatchObject({ version: 3, tracking: { utm_source: "company_website", utm_medium: "website" }, values: { published_0: "Alice", published_1: "Example", published_4: `customer@${domain}` } });
+      expect(Object.keys(requests()[0].values).sort()).toEqual(published.data.fields.map(field => field.id).sort());
+    } finally { window.history.replaceState({}, "", "/"); }
+  });
+  it("skips availability checks for malformed or overlong emails and verifies corrected input", async () => {
+    routes(() => Response.json({ success: true, data: { accepted: true } }));
+    await ready(); vi.useFakeTimers();
+    for (const value of ["alice@@example.com", "x".repeat(255)]) {
+      fireEvent.change(email(), { target: { value } });
+      expect(email()).toHaveAttribute("aria-invalid", "true");
+      await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+      fireEvent.submit(submitButton().closest("form")!);
+      expect(network).toHaveBeenCalledTimes(1);
+    }
+    fireEvent.change(email(), { target: { value: "customer@company.com" } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+    expect(email()).toHaveAttribute("aria-invalid", "false");
+    expect(network).toHaveBeenCalledTimes(2);
+    expect(submitButton()).toBeEnabled();
+  });
+  it.each(Object.entries(emailAvailabilityMessages))("keeps the public %s availability rejection visible and blocks submission", async (reason, message) => {
+    network.mockResolvedValueOnce(Response.json(definition()))
+      .mockResolvedValueOnce(Response.json({ success: true, data: { available: false, reason } }));
+    await ready(); vi.useFakeTimers(); fillValid();
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+    expect(email()).toHaveAccessibleDescription(message);
+    expect(email()).toHaveAttribute("aria-invalid", "true");
+    expect(submitButton()).toBeDisabled();
+    fireEvent.submit(submitButton().closest("form")!);
+    expect(submissions()).toHaveLength(0);
   });
   it("filters and searches products while keeping selections removable across categories", async () => {
     network.mockResolvedValueOnce(Response.json(definition()));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captureTracking, emptyContactValues, parsePublicForm, submissionReceipt, validateContactValues } from "../src/lib/contact-contract";
+import { captureTracking, contactInputMaxLength, emptyContactValues, parsePublicForm, submissionReceipt, validateContactValues } from "../src/lib/contact-contract";
 import { definition, productId, secondProductId, validValues } from "./fixtures";
 
 describe("published form contract", () => {
@@ -34,23 +34,70 @@ describe("published form contract", () => {
     expect(validateContactValues(form, { ...validValues(), phone: "" }).errors).toEqual({});
     expect(validateContactValues(form, { ...validValues(), lastName: "x".repeat(101), address: "\u0000" }).errors).toHaveProperty("family");
   });
-  it("matches public name character rules, message precedence and the pre-trim length limit", () => {
+  it.each([["firstName", "given", "First name"], ["lastName", "family", "Last name"]] as const)("matches LeadCRM's allowed characters and combined error for %s", (key, id, label) => {
     const form = parsePublicForm(definition());
     const base = validValues();
-    const given = " Jo\u0301se O‘Neil‑Pérez ";
-    expect(validateContactValues(form, { ...base, firstName: given }).values.given).toBe(given.trim());
-    expect(validateContactValues(form, { ...base, firstName: "A!2" + "x".repeat(100), lastName: "Ana\u2014María" }).errors).toEqual({ given: "First name must not contain numbers.", family: "Last name must not contain special characters." });
-    expect(validateContactValues(form, { ...base, firstName: "A".repeat(100) }).errors).toEqual({});
-    expect(validateContactValues(form, { ...base, firstName: "A".repeat(100) + " " }).errors.given).toBe("String must contain at most 100 character(s)");
+    for (const value of ["Juan", "Dela Cruz", "O'Connor", "O’Connor", "Anne-Marie", "Anne‐Marie", "José", "María", "李", " Jo\u0301se O‘Neil‑Pérez "]) {
+      const checked = validateContactValues(form, { ...base, [key]: value });
+      expect(checked.errors, value).toEqual({});
+      expect(checked.values[id]).toBe(value.trim());
+    }
+    const message = `${label} must not contain numbers or special characters such as @, #, $, %, &, *, !, _, +, =, /, ?, ., or ().`;
+    for (const value of ["John123", "Juan@", "Maria#", "Smith123!", "John_Doe", "John١", "John²", "A!2" + "x".repeat(100), ...["$", "%", "&", "*", "!", "+", "=", "/", "?", ".", "(", ")", "—", "😀", "\t", "\n", "\u0000"].map(symbol => `John${symbol}`)]) {
+      expect(validateContactValues(form, { ...base, [key]: value }).errors, value).toEqual({ [id]: message });
+    }
+  });
+  it.each([
+    ["firstName", "First name", 100], ["lastName", "Last name", 100],
+    ["companyName", "Company name", 255], ["address", "Full address", 500],
+  ] as const)("validates the trimmed %s boundary without modifying the draft", (key, label, max) => {
+    const form = parsePublicForm(definition());
+    const field = form.mapping[key];
+    expect(contactInputMaxLength(field)).toBe(max);
+    for (const value of ["A".repeat(max), `  ${"A".repeat(max)}  `]) {
+      const input = { ...validValues(), [key]: value };
+      const checked = validateContactValues(form, input);
+      expect(checked.errors).toEqual({});
+      expect(checked.values[field.id]).toBe("A".repeat(max));
+      expect(input[key]).toBe(value);
+    }
+    expect(validateContactValues(form, { ...validValues(), [key]: ` ${"A".repeat(max + 1)} ` }).errors).toEqual({ [field.id]: `${label} must not exceed ${max} characters.` });
+  });
+  it("uses mapped limits for compatible company, email and address field types", () => {
+    const payload = definition();
+    payload.data.fields[2].type = "company-name";
+    payload.data.fields[4].type = "contact-email";
+    payload.data.fields[6].type = "single-line";
+    const form = parsePublicForm(payload);
+    expect(validateContactValues(form, { ...validValues(), companyName: "x".repeat(255), address: "x".repeat(500) }).errors).toEqual({});
+    expect(validateContactValues(form, { ...validValues(), companyName: "x".repeat(256), address: "x".repeat(501) }).errors).toEqual({ organization: "Company name must not exceed 255 characters.", location: "Full address must not exceed 500 characters." });
+  });
+  it("preserves public email domains, normalization, format checks and the pre-trim limit", () => {
+    const form = parsePublicForm(definition());
+    for (const domain of ["gmail.com", "yahoo.com", "outlook.com", "company.com"]) {
+      const checked = validateContactValues(form, { ...validValues(), email: ` CUSTOMER@${domain.toUpperCase()} ` });
+      expect(checked.errors).toEqual({});
+      expect(checked.values.mail).toBe(`customer@${domain}`);
+    }
+    const email = `${"a".repeat(64)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(61)}`;
+    expect(email).toHaveLength(254);
+    expect(contactInputMaxLength(form.mapping.email)).toBe(254);
+    expect(validateContactValues(form, { ...validValues(), email }).errors).toEqual({});
+    for (const value of [email + "d", email + " "]) {
+      expect(validateContactValues(form, { ...validValues(), email: value }).errors).toEqual({ mail: "Email address must not exceed 254 characters." });
+    }
+    for (const value of ["alice@@example.com", "alice", "alice@example", ".alice@example.com", "one..two@example.com"]) {
+      expect(validateContactValues(form, { ...validValues(), email: value }).errors).toEqual({ mail: "Enter a valid email address." });
+    }
   });
   it("applies the configured text limits, required flags and control rules", () => {
     const payload = definition(); payload.data.fields[2].required = true;
     const form = parsePublicForm(payload);
     const base = validValues();
     expect(validateContactValues(form, { ...base, companyName: "  ", address: "" }).errors).toEqual({ organization: "Company is required." });
-    expect(validateContactValues(form, { ...base, companyName: "Acme\u0000", address: "x".repeat(4001) }).errors).toEqual({ organization: "Control characters are not allowed.", location: "String must contain at most 4000 character(s)" });
-    expect(validateContactValues(form, { ...base, companyName: "x".repeat(255), email: "one..two@example.com" }).errors).toEqual({ organization: "String must contain at most 254 character(s)", mail: "Enter a valid email address." });
-    expect(validateContactValues(form, { ...base, companyName: "x".repeat(254), address: "  Unit 4\nPasig  " }).values.location).toBe("Unit 4\nPasig");
+    expect(validateContactValues(form, { ...base, companyName: "Acme\u0000", address: "x".repeat(501) }).errors).toEqual({ organization: "Control characters are not allowed.", location: "Full address must not exceed 500 characters." });
+    expect(validateContactValues(form, { ...base, companyName: "x".repeat(255), email: "one..two@example.com" }).errors).toEqual({ mail: "Enter a valid email address." });
+    expect(validateContactValues(form, { ...base, companyName: "x".repeat(255), address: "  Unit 4\nPasig  " }).values.location).toBe("Unit 4\nPasig");
     expect(validateContactValues(form, { ...base, phone: "8123456789" }).errors.mobile).toBe("Enter 10 digits starting with 9.");
   });
   it("keeps only bounded supported tracking parameters", () => {

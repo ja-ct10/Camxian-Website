@@ -87,11 +87,12 @@ export function validateContactValues(form: BoundForm, input: ContactValues) {
     }
     const raw = input[key];
     let value = raw.trim();
-    const max = key === "firstName" || key === "lastName" ? 100 : contactInputMaxLength(field);
+    const max = contactInputMaxLength(field);
     const nameLabel = key === "firstName" ? "First name" : key === "lastName" ? "Last name" : undefined;
-    if (nameLabel && /[0-9]/.test(raw)) errors[field.id] = `${nameLabel} must not contain numbers.`;
-    else if (nameLabel && /[^\p{L}\p{M} '\u2018\u2019\u2010\u2011-]/u.test(raw)) errors[field.id] = `${nameLabel} must not contain special characters.`;
-    else if (raw.length > max) errors[field.id] = `String must contain at most ${max} character(s)`;
+    const limitLabel = nameLabel ?? (key === "companyName" ? "Company name" : key === "email" ? "Email address" : key === "address" ? "Full address" : undefined);
+    const limitValue = nameLabel || key === "companyName" || key === "address" ? value : raw;
+    if (nameLabel && /[^\p{L}\p{M} '\u2018\u2019\u2010\u2011-]/u.test(raw)) errors[field.id] = `${nameLabel} must not contain numbers or special characters such as @, #, $, %, &, *, !, _, +, =, /, ?, ., or ().`;
+    else if (limitValue.length > max) errors[field.id] = limitLabel ? `${limitLabel} must not exceed ${max} characters.` : `String must contain at most ${max} character(s)`;
     else if (controls.test(raw)) errors[field.id] = "Control characters are not allowed.";
     else if (!value && field.required) errors[field.id] = `${field.label} is required.`;
     else if (value && key === "email") {
@@ -106,8 +107,14 @@ export function validateContactValues(form: BoundForm, input: ContactValues) {
   return { values, errors };
 }
 
-/** The public UI allows overlong names to be entered and reports the 100-character validation limit. */
+/** Validation limits follow CRM mappings; text inputs allow overlong drafts for inline errors. */
 export function contactInputMaxLength(field?: FormField) {
+  switch (field?.mapToField) {
+    case "firstName": case "lastName": return 100;
+    case "companyName": return 255;
+    case "email": return 254;
+    case "address": return 500;
+  }
   return field?.type === "multi-line" ? field.customFieldId ? 10000 : 4000 : field?.customFieldId ? 1000 : 254;
 }
 
